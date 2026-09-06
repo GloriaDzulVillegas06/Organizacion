@@ -54,9 +54,65 @@ function renderPlayers(app,s){
   document.querySelector('#new-player')?.addEventListener('click',()=>openPlayer());draw();
 }
 
-function playerDialog(){return `<dialog id="player-dialog"><div class="modal-head"><h2>FICHA DE JUGADORA</h2><button data-close>×</button></div><form class="form" id="player-form"><input type="hidden" name="id"><input type="hidden" name="foto"><div class="field"><label>Nombre</label><input name="nombre" required></div><div class="field"><label>Apellidos</label><input name="apellido" required></div><div class="field"><label>Número</label><input name="numero" type="number" min="1" max="99" required></div><div class="field"><label>Posición</label><select name="posicion"><option>Portera</option><option>Defensa</option><option>Mediocampista</option><option>Delantera</option></select></div><div class="field wide"><label>Fotografía (PNG, JPG o WebP, máximo 3 MB)</label><input name="fotoFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="image-upload-preview" id="player-photo-preview">Vista previa</div></div><div class="field wide"><label>Presentación de la jugadora</label><textarea name="notas" rows="4" placeholder="Texto que aparecerá en su ficha pública"></textarea></div><p class="wide form-note">Los goles se asignan desde el partido donde fueron anotados. Las estadísticas se calculan automáticamente.</p><div class="field wide"><label><input name="activa" type="checkbox" checked> Jugadora activa</label></div><p class="error wide" id="player-photo-error"></p><div class="form-actions"><button type="button" class="secondary" data-close>Cancelar</button><button class="primary">Guardar jugadora</button></div></form></dialog>`}
-function openPlayer(p={}){const d=document.querySelector('#player-dialog'),f=document.querySelector('#player-form');f.reset();for(const [k,v] of Object.entries(p))if(f.elements[k])f.elements[k].type==='checkbox'?f.elements[k].checked=v:f.elements[k].value=v;showImagePreview('#player-photo-preview',p.foto);d.showModal()}
-function bindPlayerActions(draw){document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openPlayer(playersService.all().find(p=>p.id===b.dataset.edit)));document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>{if(confirm('¿Eliminar esta jugadora de la plantilla?')){playersService.remove(b.dataset.delete);draw();showToast('Jugadora eliminada de la plantilla.')}});const f=document.querySelector('#player-form');f.elements.fotoFile.onchange=()=>previewSelectedFile(f.elements.fotoFile,'#player-photo-preview');f.onsubmit=async e=>{e.preventDefault();const file=f.elements.fotoFile.files[0],error=document.querySelector('#player-photo-error');error.textContent='';if(file&&file.size>3*1024*1024){error.textContent='La imagen supera el máximo de 3 MB.';return}const o=Object.fromEntries(new FormData(f)),existing=playersService.all().find(p=>String(p.id)===String(o.id))||{},isNew=!o.id,button=f.querySelector('[type="submit"]');delete o.fotoFile;o.numero=+o.numero;o.activa=f.elements.activa.checked;o.foto=existing.foto||'';o.goles=existing.goles||0;o.partidos=existing.partidos||0;o.golesPorLiga=existing.golesPorLiga||{};if(file){o.fotoData=await fileToDataURL(file);o.fileName=file.name;o.mimeType=file.type}button.disabled=true;button.textContent='Subiendo…';try{await playersService.save(o);f.closest('dialog').close();draw();showToast(isNew?'Jugadora guardada correctamente.':'Jugadora actualizada correctamente.')}catch(err){error.textContent=err.message;showToast(`No se pudo guardar la jugadora: ${err.message}`,'error')}finally{button.disabled=false;button.textContent='Guardar jugadora'}}}
+function playerDialog(){return `<dialog id="player-dialog"><div class="modal-head"><h2>FICHA DE JUGADORA</h2><button type="button" data-close>×</button></div><form class="form" id="player-form"><input type="hidden" name="id"><input type="hidden" name="foto"><div class="field"><label>Nombre</label><input name="nombre" required></div><div class="field"><label>Apellidos (opcional)</label><input name="apellido"></div><div class="field"><label>Número</label><input name="numero" type="number" min="1" max="99" required></div><div class="field"><label>Posición</label><select name="posicion"><option>Portera</option><option>Defensa</option><option>Mediocampista</option><option>Delantera</option></select></div><div class="field wide"><label>Fotografía (PNG, JPG o WebP, máximo 3 MB)</label><input name="fotoFile" type="file" accept="image/png,image/jpeg,image/webp"><div class="image-upload-preview" id="player-photo-preview">Vista previa</div></div><div class="field wide"><label>Presentación de la jugadora</label><textarea name="notas" rows="4" placeholder="Texto que aparecerá en su ficha pública"></textarea></div><p class="wide form-note">Los goles se asignan desde el partido donde fueron anotados. Las estadísticas se calculan automáticamente.</p><div class="field wide"><label><input name="activa" type="checkbox" checked> Jugadora activa</label></div><p class="error wide" id="player-photo-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary" data-close>Cancelar</button><button class="primary" type="submit">Guardar jugadora</button></div></form></dialog>`}
+function openPlayer(p={}){
+  const d=document.querySelector('#player-dialog'),f=document.querySelector('#player-form');
+  f.reset();
+  f.elements.fotoFile.setCustomValidity('');
+  document.querySelector('#player-photo-error').textContent='';
+  for(const [k,v] of Object.entries(p))if(f.elements[k])f.elements[k].type==='checkbox'?f.elements[k].checked=v:f.elements[k].value=v;
+  showImagePreview('#player-photo-preview',p.foto);
+  d.showModal();
+}
+function bindPlayerActions(draw){
+  document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openPlayer(playersService.all().find(p=>String(p.id)===String(b.dataset.edit))));
+  document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('¿Eliminar esta jugadora de la plantilla?'))return;
+    try{
+      await playersService.remove(b.dataset.delete);
+      draw();
+      showToast('Jugadora eliminada de la plantilla.');
+    }catch(err){showToast(`No se pudo eliminar la jugadora: ${err.message}`,'error')}
+  });
+  const f=document.querySelector('#player-form');
+  f.elements.fotoFile.onchange=()=>{
+    document.querySelector('#player-photo-error').textContent='';
+    previewSelectedFile(f.elements.fotoFile,'#player-photo-preview',f.elements.foto.value);
+  };
+  f.onsubmit=async e=>{
+    e.preventDefault();
+    const button=f.querySelector('[type="submit"]');
+    if(button.disabled)return;
+    const file=f.elements.fotoFile.files[0],error=document.querySelector('#player-photo-error');
+    error.textContent='';
+    if(file&&file.size>3*1024*1024){error.textContent='La imagen supera el máximo de 3 MB.';return}
+    button.disabled=true;
+    button.textContent=file?'Subiendo…':'Guardando…';
+    try{
+      const o=Object.fromEntries(new FormData(f)),existing=playersService.all().find(p=>String(p.id)===String(o.id))||{},isNew=!o.id;
+      delete o.fotoFile;
+      o.numero=+o.numero;
+      o.activa=f.elements.activa.checked;
+      o.foto=existing.foto||'';
+      o.fotoIndex=existing.fotoIndex??0;
+      o.goles=existing.goles||0;
+      o.partidos=existing.partidos||0;
+      o.golesPorLiga=existing.golesPorLiga||{};
+      if(file){o.fotoData=await fileToDataURL(file);o.fileName=file.name;o.mimeType=file.type}
+      await playersService.save(o);
+      f.closest('dialog').close();
+      draw();
+      showToast(isNew?'Jugadora guardada correctamente.':'Jugadora actualizada correctamente.');
+    }catch(err){
+      error.textContent=err.message;
+      showToast(`No se pudo guardar la jugadora: ${err.message}`,'error');
+    }finally{
+      button.disabled=false;
+      button.textContent='Guardar jugadora';
+    }
+  };
+}
 
 function renderMatches(app,s){app.innerHTML=shell(s,'PARTIDOS','Calendario, resultados y encuentros activos',`<div class="toolbar"><select id="match-state"><option value="">Todos</option><option value="programado">Próximos</option><option value="finalizado">Finalizados</option></select>${authService.can('manageMatches')?'<button class="primary" id="new-match">+ Crear partido</button>':''}</div><section class="match-list" id="match-list"></section>${matchDialog()}`);const draw=()=>{const state=document.querySelector('#match-state').value;document.querySelector('#match-list').innerHTML=matchesService.all().filter(m=>!state||m.estado===state).map(m=>`<article class="match-row"><div><small>${formatDate(m.fecha)}</small><br><span class="state">${m.estado}</span></div><strong>${TEAM.shortName||TEAM.name} &nbsp; ${m.estado==='finalizado'?`${m.golesXolitas} — ${m.golesRival}`:'VS'} &nbsp; ${m.rival.toUpperCase()}</strong><small>${m.hora}<br>${m.lugar}</small><div>${authService.can('manageMatches')?`<button class="secondary" data-match-edit="${m.id}">Editar</button>`:''}</div></article>`).join('')};document.querySelector('#match-state').onchange=draw;document.querySelector('#new-match')?.addEventListener('click',()=>openMatch());draw();document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());document.querySelector('#match-form')?.addEventListener('submit',e=>{e.preventDefault();const o=Object.fromEntries(new FormData(e.currentTarget));Object.assign(o,{jornada:+o.jornada,golesXolitas:+(o.golesXolitas||0),golesRival:+(o.golesRival||0),estado:o.estado||'programado'});matchesService.save(o);e.currentTarget.closest('dialog').close();renderMatches(app,s)});document.querySelectorAll('[data-match-edit]').forEach(b=>b.onclick=()=>openMatch(matchesService.all().find(m=>m.id===b.dataset.matchEdit)))}
 function matchDialogLegacy(){return ''}function openMatch(m={}){const d=document.querySelector('#match-dialog'),f=document.querySelector('#match-form');installRivalUploadField();f.reset();for(const [k,v] of Object.entries(m))if(f.elements[k])f.elements[k].value=v;if(!m.tipo&&m.estado==='descanso')f.elements.tipo.value='descanso';showImagePreview('#rival-logo-preview',m.logoRival);syncMatchTypeFields();d.showModal()}
@@ -121,7 +177,7 @@ function fileToDataURL(file){return new Promise((resolve,reject)=>{const reader=
 function escapeAdmin(value=''){const span=document.createElement('span');span.textContent=String(value);return span.innerHTML}
 function installUploadStyles(){if(document.querySelector('#upload-styles'))return;const style=document.createElement('style');style.id='upload-styles';style.textContent='.image-upload-preview{min-height:130px;border:1px dashed #d2a0bc;background:#faf6f0;display:grid;place-items:center;color:#746574;font-size:10px}.image-upload-preview img{width:100%;height:150px;object-fit:contain;padding:10px}.field textarea{border:1px solid #ddcfd8;padding:12px;resize:vertical;font:inherit}';document.head.appendChild(style)}
 function showImagePreview(selector,url){const host=document.querySelector(selector);if(host)host.innerHTML=url?`<img src="${escapeAdmin(url)}" alt="Vista previa">`:'Vista previa'}
-function previewSelectedFile(input,selector){const file=input.files[0];if(!file)return;if(file.size>3*1024*1024){input.setCustomValidity('La imagen supera el máximo de 3 MB');input.reportValidity();return}input.setCustomValidity('');showImagePreview(selector,URL.createObjectURL(file))}
+function previewSelectedFile(input,selector,fallbackUrl=''){input.setCustomValidity('');const file=input.files[0];if(!file){showImagePreview(selector,fallbackUrl);return}if(file.size>3*1024*1024){input.setCustomValidity('La imagen supera el máximo de 3 MB');input.reportValidity();return}showImagePreview(selector,URL.createObjectURL(file))}
 function installRivalUploadField(){const form=document.querySelector('#match-form');if(!form||document.querySelector('#rival-logo-file'))return;const field=document.createElement('div');field.className='field wide match-only rival-upload-field';field.innerHTML=`<label>Subir escudo rival (PNG, JPG o WebP, máximo 3 MB)</label><input id="rival-logo-file" type="file" accept="image/png,image/jpeg,image/webp"><input type="hidden" name="logoData"><input type="hidden" name="fileName"><input type="hidden" name="mimeType"><div class="image-upload-preview" id="rival-logo-preview">Vista previa</div>`;form.querySelector('.form-actions').before(field);field.querySelector('#rival-logo-file').onchange=async event=>{const file=event.target.files[0];if(!file)return;if(file.size>3*1024*1024){event.target.setCustomValidity('La imagen supera el máximo de 3 MB');event.target.reportValidity();return}event.target.setCustomValidity('');showImagePreview('#rival-logo-preview',URL.createObjectURL(file));form.elements.logoData.value=await fileToDataURL(file);form.elements.fileName.value=file.name;form.elements.mimeType.value=file.type}}
 
 async function renderTeamSettings(app,s){

@@ -1,8 +1,8 @@
 window.XOLITAS_CONFIG = {
   BASE_PATH: '/Organizacion',
   DEFAULT_TEAM_SLUG: 'xolitas',
-  SUPABASE_URL: 'PEGA_AQUI_TU_SUPABASE_URL',
-  SUPABASE_PUBLISHABLE_KEY: 'PEGA_AQUI_TU_PUBLISHABLE_KEY',
+  SUPABASE_URL: 'https://gjshmyovsiojegrzmswg.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_uKzyk8W-Y_q3eq-qPf_eUw_i7XVGewb',
   AUTO_DEMO_IF_UNCONFIGURED: true,
   DEMO_MODE: false,
   STORAGE_PREFIX: 'organizacion_saas_',
