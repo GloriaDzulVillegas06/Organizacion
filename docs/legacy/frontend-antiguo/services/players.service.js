@@ -1,0 +1,2 @@
+import { mockPlayers } from '../mock-data.js'; import { store } from './store.service.js';
+export const playersService={all(){return store.get('players',mockPlayers)},save(player){const all=this.all();if(!player.id)player.id=crypto.randomUUID();const i=all.findIndex(p=>p.id===player.id);i<0?all.push(player):all.splice(i,1,player);return store.set('players',all)},remove(id){return store.set('players',this.all().filter(p=>p.id!==id))}};

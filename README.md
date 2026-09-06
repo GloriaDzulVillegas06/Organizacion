@@ -1,90 +1,113 @@
-# Sports Admin / Organizacion
+# Organización · Plataforma multi-equipo
 
-Plataforma multi-equipo creada a partir del proyecto Xolitas F.C. para publicarse en GitHub Pages y usar Supabase como backend.
+Esta versión conserva **el diseño actual de Xolitas F.C. como plantilla maestra**. No es un rediseño: el layout público, tarjetas, jornadas, plantilla, goleadoras, clasificación, patrocinadores, modo partido, animaciones y responsive parten del proyecto `Xolitas-main(2)`.
 
-## Qué incluye
+Lo que cambia por equipo es la identidad y la información: nombre, logo, colores, textos, jugadoras, partidos, ligas, estadísticas, clasificación y patrocinadores.
 
-- Un solo repositorio y una sola base de código.
-- URL pública por slug: `/Organizacion/xolitas/`, `/Organizacion/panteras/`, etc.
-- Xolitas funciona como primer tenant y sigue siendo totalmente administrable.
-- Super Admin: equipos, suscripciones, planes y feature flags.
-- Administración por equipo: dashboard, identidad, jugadoras, ligas, partidos, clasificación, patrocinadores, usuarios, plan y modo partido.
-- Página pública dinámica con branding, módulos configurables, plantilla, calendario, estadísticas, tabla, patrocinadores y marcador.
-- Supabase Auth + PostgreSQL + Storage + Realtime + RLS.
-- Roles: owner, admin, capturista, entrenador, viewer; rol de plataforma super_admin.
-- Eventos de partido con anulación en vez de borrado histórico.
-- Planes iniciales: Starter $249, Pro $449, Elite $699, Club $1,299 MXN/mes.
-- Modo demo local para revisar el frontend antes de conectar Supabase.
+## URLs
 
-## Orden de instalación
+El repositorio está preparado para llamarse `Organizacion` en GitHub Pages.
+
+- `/Organizacion/xolitas/`
+- `/Organizacion/panteras/`
+- `/Organizacion/cualquier-slug/`
+- `/Organizacion/admin/login.html?team=xolitas`
+- `/Organizacion/platform/index.html` (SUPER_ADMIN)
+
+`404.html` actúa como resolvedor para las URLs limpias de equipos en GitHub Pages. No se crea una carpeta física por cliente.
+
+## Lo incluido
+
+### Página pública dinámica
+- Diseño original de Xolitas.
+- Identidad dinámica por `slug`.
+- Colores CSS configurables sin cambiar layout.
+- Textos de secciones configurables.
+- Activación/desactivación de módulos públicos.
+- Plantilla y fichas de jugadoras.
+- Jornadas, último resultado y próximo partido.
+- Tabla de clasificación.
+- Goleadoras y filtro por liga.
+- Patrocinadores.
+- Realtime para partidos y eventos.
+
+### Dashboard por equipo
+- Dashboard deportivo con el diseño actual de Xolitas.
+- Jugadoras: alta, edición, baja y fotografía.
+- Ligas.
+- Jornadas/partidos.
+- Escudo rival.
+- Resultados históricos y asignación de goleadoras.
+- Clasificación.
+- Patrocinadores.
+- Modo partido: gol, gol rival, autogol, amarilla, segunda amarilla, roja, expulsión, pausa, finalizar y anular evento.
+- Identidad del equipo: logo, colores, textos y módulos.
+- Usuarios/roles.
+- Consulta del plan y funciones.
+
+### SUPER_ADMIN
+- Organizaciones y equipos.
+- Crear organización + primer equipo.
+- Agregar equipos a una organización existente.
+- URLs por slug.
+- Suspender/reactivar organizaciones.
+- Suscripciones.
+- Planes y matriz de feature flags.
+
+### Backend Supabase
+- PostgreSQL multi-tenant.
+- Supabase Auth.
+- Storage `team-assets`.
+- Realtime en `matches` y `match_events`.
+- RLS por organización/equipo.
+- Roles: `owner`, `admin`, `capturista`, `entrenador`, `viewer`.
+- Rol de plataforma `super_admin`.
+- Planes y feature flags.
+- Trial automático Pro al crear organización desde SUPER_ADMIN.
+- Límite de equipos por plan.
+- Auditoría.
+- Invitaciones de usuarios.
+- Catálogo inicial de deportes/posiciones.
+- Convocatoria/alineación (`match_rosters`) preparada para ampliarse.
+- Campo de dominio personalizado preparado en configuración.
+
+## Instalación
 
 1. Crea un proyecto en Supabase.
 2. En SQL Editor ejecuta `supabase/01_SCHEMA_COMPLETO.sql` completo.
-3. En Authentication > Users crea tu usuario con correo y contraseña.
-4. Abre `supabase/02_CREAR_SUPER_ADMIN_Y_XOLITAS.sql`, sustituye `TU_CORREO_AQUI` y ejecútalo.
-5. Opcional: ejecuta `supabase/03_DATOS_INICIALES_XOLITAS.sql` para cargar los registros base conocidos del Sheet.
-6. En Project Settings copia `Project URL` y la `Publishable key` (o anon key de proyecto legacy).
+3. En Authentication crea tu usuario con correo y contraseña.
+4. Abre `supabase/02_CREAR_SUPER_ADMIN_Y_XOLITAS.sql`, cambia `TU_CORREO_AQUI` por ese correo y ejecútalo.
+5. Opcionalmente ejecuta `supabase/03_DATOS_INICIALES_XOLITAS.sql` para cargar los datos base conocidos.
+6. En Supabase copia Project URL y Publishable/Anon key.
 7. Edita `assets/js/config.js`:
 
 ```js
 SUPABASE_URL: 'https://TU-PROYECTO.supabase.co',
-SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_...',
-DEMO_MODE: false
+SUPABASE_PUBLISHABLE_KEY: 'TU_PUBLISHABLE_KEY',
+DEMO_MODE: false,
 ```
 
-8. NO uses ni publiques `service_role`.
-9. Sube el contenido de esta carpeta al repositorio GitHub `Organizacion` y activa GitHub Pages desde la rama principal.
-10. Entra a `/Organizacion/admin/login.html`.
+8. Sube **el contenido de esta carpeta** a la raíz del repositorio GitHub `Organizacion`.
+9. Activa GitHub Pages desde la rama principal y carpeta raíz.
 
-## URLs
+No coloques `service_role` en GitHub.
 
-- Login: `/Organizacion/admin/login.html`
-- Super Admin: `/Organizacion/admin/index.html`
-- Xolitas: `/Organizacion/xolitas/`
-- Cualquier nuevo equipo: `/Organizacion/{slug}/`
+## Modo sin Supabase
 
-GitHub Pages servirá `404.html` para las rutas de equipos que no existen físicamente. Ese archivo usa el mismo frontend público y resuelve el `slug` desde la URL. No necesitas crear una carpeta por cliente.
+Si todavía no están configuradas las credenciales, `AUTO_DEMO_IF_UNCONFIGURED: true` activa almacenamiento local. Esto sirve para revisar diseño y navegación, pero el modo de producción es Supabase.
 
-## Seguridad
+## Regla visual
 
-La interfaz oculta acciones según contexto, pero la seguridad real vive en Supabase RLS. Cada entidad deportiva guarda `team_id`; el equipo pertenece a `organization_id`; las políticas validan membresía y rol.
+Xolitas es la plantilla maestra. Para agregar un equipo nuevo **no se modifica el HTML/CSS estructural**. Se cambian datos y variables de identidad desde el dashboard.
 
-- OWNER/ADMIN: administración amplia de la organización.
-- CAPTURISTA: partidos y eventos.
-- ENTRENADOR: plantilla y partidos según política.
-- VIEWER: lectura.
-- SUPER_ADMIN: acceso global de plataforma.
+## Archivos principales
 
-## Invitaciones
+- `index.html` y `404.html`: página pública/route resolver.
+- `src.js`: renderer público conservando el diseño de Xolitas.
+- `assets/js/runtime.js`: contexto multi-tenant, Supabase, servicios y compatibilidad con la UI original.
+- `assets/js/admin.js`: dashboard operativo por equipo.
+- `assets/js/match.js`: modo partido.
+- `assets/js/platform.js`: SUPER_ADMIN.
+- `supabase/01_SCHEMA_COMPLETO.sql`: esquema, RLS, RPC, Storage, Realtime, planes y seeds.
 
-Si invitas un correo que ya existe en Supabase Auth, se agrega la membresía inmediatamente. Si todavía no existe, se registra una invitación pendiente. Para una versión comercial posterior puede conectarse un proveedor de correo/Edge Function para enviar automáticamente el enlace de alta; la base ya contempla el estado de invitación.
-
-## Realtime
-
-`matches` y `match_events` se agregan a `supabase_realtime`. La página pública se suscribe a cambios del equipo y se vuelve a renderizar cuando se registra un evento o cambia el partido. Para mayor escala se puede migrar a Broadcast sin alterar el modelo de datos.
-
-## Storage
-
-Bucket público: `team-assets`.
-
-Estructura usada por el frontend:
-
-`teams/{team_id}/{branding|players|opponents|sponsors}/{archivo}`
-
-Las escrituras están protegidas por RLS y requieren pertenecer a la organización dueña del equipo.
-
-## Migración del proyecto Xolitas actual
-
-No borres la página actual hasta validar la nueva versión. Primero:
-
-1. Carga Xolitas en Supabase.
-2. Migra jugadoras, ligas, partidos, eventos, clasificación y patrocinadores.
-3. Compara conteos y marcadores.
-4. Valida el modo partido.
-5. Cambia la URL que compartes al nuevo `/Organizacion/xolitas/` cuando estés conforme.
-
-La columna `legacy_id` se conserva para mapear IDs de Google Sheets durante la migración.
-
-## Producción
-
-Para venderlo a varios equipos conviene después mover el frontend de GitHub Pages a Cloudflare Pages/Netlify/Vercel para rutas reales, dominios personalizados y SEO, manteniendo Supabase sin cambios. GitHub Pages funciona bien para la primera etapa.
+La carpeta `docs/legacy` contiene piezas antiguas únicamente como referencia y no se cargan en producción.

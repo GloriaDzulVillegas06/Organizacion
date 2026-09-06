@@ -1,0 +1,2 @@
+import { mockMatches } from '../mock-data.js'; import { store } from './store.service.js';
+export const matchesService={all(){return store.get('matches',mockMatches)},save(match){const all=this.all();if(!match.id)match.id=crypto.randomUUID();const i=all.findIndex(m=>m.id===match.id);i<0?all.push(match):all.splice(i,1,match);return store.set('matches',all)},active(){return store.get('activeMatch',null)},setActive(match){return store.set('activeMatch',match)}};

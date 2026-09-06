@@ -1,0 +1,2 @@
+.round-card__teams{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}.round-card__teams strong{min-width:0;overflow-wrap:anywhere}
+@media(max-width:760px){.round-card{overflow:hidden}.round-card__teams{width:100%}.round-card__teams strong:last-child{max-width:100%}}

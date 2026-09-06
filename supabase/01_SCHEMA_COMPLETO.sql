@@ -72,6 +72,27 @@ create table if not exists public.subscriptions (
   created_at timestamptz not null default now()
 );
 
+-- ---------- Catálogo deportivo ----------
+create table if not exists public.sports (
+  code text primary key,
+  name text not null,
+  active boolean not null default true
+);
+
+create table if not exists public.positions (
+  id uuid primary key default gen_random_uuid(),
+  sport_code text not null references public.sports(code) on delete cascade,
+  code text not null,
+  name text not null,
+  sort_order integer not null default 0,
+  unique(sport_code,code)
+);
+
+insert into public.sports(code,name) values('football','Fútbol') on conflict(code) do update set name=excluded.name;
+insert into public.positions(sport_code,code,name,sort_order) values
+('football','gk','Portera',1),('football','df','Defensa',2),('football','mf','Mediocampista',3),('football','fw','Delantera',4)
+on conflict(sport_code,code) do update set name=excluded.name,sort_order=excluded.sort_order;
+
 -- ---------- Equipos ----------
 create table if not exists public.teams (
   id uuid primary key default gen_random_uuid(),
@@ -109,6 +130,8 @@ create table if not exists public.team_site_settings (
   labels jsonb not null default '{"roster":"Plantilla","calendar":"Calendario oficial","stats":"Goleadoras","club":"Nuestra identidad"}'::jsonb,
   modules jsonb not null default '{"next_match":true,"last_result":true,"roster":true,"stats":true,"calendar":true,"live_match":true,"sponsors":true}'::jsonb,
   social_links jsonb not null default '{}'::jsonb,
+  custom_domain text,
+  copy jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
 
@@ -171,7 +194,7 @@ create table if not exists public.match_events (
   match_id uuid not null references public.matches(id) on delete cascade,
   player_id uuid references public.players(id) on delete set null,
   related_player_id uuid references public.players(id) on delete set null,
-  event_type text not null check (event_type in ('goal','rival_goal','own_goal','yellow','second_yellow','red','expulsion','substitution')),
+  event_type text not null check (event_type in ('goal','rival_goal','own_goal_for','own_goal_against','yellow','second_yellow','red','expulsion','substitution')),
   minute integer check (minute between 0 and 200),
   second integer check (second between 0 and 59),
   details jsonb not null default '{}'::jsonb,
@@ -181,6 +204,18 @@ create table if not exists public.match_events (
   annulled_by uuid references auth.users(id) on delete set null,
   annulled_at timestamptz,
   legacy_id text
+);
+
+create table if not exists public.match_rosters (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams(id) on delete cascade,
+  match_id uuid not null references public.matches(id) on delete cascade,
+  player_id uuid not null references public.players(id) on delete cascade,
+  role text not null default 'available' check (role in ('starter','substitute','available','out')),
+  position text,
+  shirt_number integer,
+  created_at timestamptz not null default now(),
+  unique(match_id,player_id)
 );
 
 create table if not exists public.sponsors (
@@ -229,6 +264,7 @@ create index if not exists idx_players_team_active on public.players(team_id,act
 create index if not exists idx_matches_team_date on public.matches(team_id,match_date desc);
 create index if not exists idx_events_match_active on public.match_events(match_id,annulled,created_at);
 create index if not exists idx_events_player_type on public.match_events(player_id,event_type);
+create index if not exists idx_match_rosters_match on public.match_rosters(match_id,role);
 create index if not exists idx_sponsors_team_active on public.sponsors(team_id,active,sort_order);
 
 -- ---------- Helpers de seguridad ----------
@@ -258,7 +294,26 @@ returns uuid language sql stable security definer set search_path=public as $$
   select organization_id from public.teams where id=p_team;
 $$;
 
+create or replace function public.org_feature_enabled(p_org uuid,p_feature text)
+returns boolean language sql stable security definer set search_path=public as $$
+  select coalesce((
+    select pf.enabled
+    from public.subscriptions s
+    join public.plan_features pf on pf.plan_id=s.plan_id and pf.feature_code=p_feature
+    where s.organization_id=p_org and s.status in ('trialing','active')
+    order by s.created_at desc limit 1
+  ),false);
+$$;
+
 -- ---------- RLS ----------
+
+alter table public.sports enable row level security;
+alter table public.positions enable row level security;
+create policy "public sports" on public.sports for select using (active=true or public.is_platform_admin());
+create policy "public positions" on public.positions for select using (true);
+create policy "platform manages sports" on public.sports for all using (public.is_platform_admin()) with check (public.is_platform_admin());
+create policy "platform manages positions" on public.positions for all using (public.is_platform_admin()) with check (public.is_platform_admin());
+
 alter table public.organizations enable row level security;
 alter table public.platform_users enable row level security;
 alter table public.organization_members enable row level security;
@@ -269,18 +324,20 @@ alter table public.players enable row level security;
 alter table public.leagues enable row level security;
 alter table public.matches enable row level security;
 alter table public.match_events enable row level security;
+alter table public.match_rosters enable row level security;
 alter table public.sponsors enable row level security;
 alter table public.standings enable row level security;
 alter table public.subscriptions enable row level security;
 alter table public.audit_log enable row level security;
 
 -- políticas públicas / miembros
-create policy "public active organizations" on public.organizations for select using (status in ('trial','active') or public.is_org_member(id));
+create policy "public active organizations" on public.organizations for select using (status in ('trial','active') or public.is_org_member(id) or public.is_platform_admin());
+create policy "platform manages organizations" on public.organizations for all using (public.is_platform_admin()) with check (public.is_platform_admin());
 create policy "members read own memberships" on public.organization_members for select using (user_id=auth.uid() or public.is_org_member(organization_id));
 create policy "admins manage memberships" on public.organization_members for all using (public.has_org_role(organization_id,array['owner','admin'])) with check (public.has_org_role(organization_id,array['owner','admin']));
 create policy "platform users self read" on public.platform_users for select using (user_id=auth.uid() or public.is_platform_admin());
 
-create policy "public teams" on public.teams for select using (public_site_enabled=true and status='active' or public.is_org_member(organization_id));
+create policy "public teams" on public.teams for select using (public_site_enabled=true and status='active' or public.is_org_member(organization_id) or public.is_platform_admin());
 create policy "org admins manage teams" on public.teams for all using (public.has_org_role(organization_id,array['owner','admin'])) with check (public.has_org_role(organization_id,array['owner','admin']));
 
 create policy "public branding" on public.team_branding for select using (exists(select 1 from public.teams t where t.id=team_id and t.public_site_enabled=true and t.status='active') or public.is_org_member(public.team_org(team_id)));
@@ -298,11 +355,14 @@ create policy "public matches" on public.matches for select using (exists(select
 create policy "staff manage matches" on public.matches for all using (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista','entrenador'])) with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista','entrenador']));
 
 create policy "public match events" on public.match_events for select using (exists(select 1 from public.teams t where t.id=team_id and t.public_site_enabled=true and t.status='active') or public.is_org_member(public.team_org(team_id)));
-create policy "capture match events" on public.match_events for insert with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista']));
-create policy "capture update events" on public.match_events for update using (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista'])) with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista']));
+create policy "capture match events" on public.match_events for insert with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista']) and public.org_feature_enabled(public.team_org(team_id),'live_match'));
+create policy "capture update events" on public.match_events for update using (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista']) and public.org_feature_enabled(public.team_org(team_id),'live_match')) with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista']) and public.org_feature_enabled(public.team_org(team_id),'live_match'));
+
+create policy "public match rosters" on public.match_rosters for select using (exists(select 1 from public.teams t where t.id=team_id and t.public_site_enabled=true and t.status='active') or public.is_org_member(public.team_org(team_id)));
+create policy "staff manage match rosters" on public.match_rosters for all using (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista','entrenador'])) with check (public.has_org_role(public.team_org(team_id),array['owner','admin','capturista','entrenador']));
 
 create policy "public sponsors" on public.sponsors for select using (exists(select 1 from public.teams t where t.id=team_id and t.public_site_enabled=true and t.status='active') or public.is_org_member(public.team_org(team_id)));
-create policy "admins manage sponsors" on public.sponsors for all using (public.has_org_role(public.team_org(team_id),array['owner','admin'])) with check (public.has_org_role(public.team_org(team_id),array['owner','admin']));
+create policy "admins manage sponsors" on public.sponsors for all using (public.has_org_role(public.team_org(team_id),array['owner','admin']) and public.org_feature_enabled(public.team_org(team_id),'sponsors')) with check (public.has_org_role(public.team_org(team_id),array['owner','admin']) and public.org_feature_enabled(public.team_org(team_id),'sponsors'));
 
 create policy "public standings" on public.standings for select using (exists(select 1 from public.teams t where t.id=team_id and t.public_site_enabled=true and t.status='active') or public.is_org_member(public.team_org(team_id)));
 create policy "admins manage standings" on public.standings for all using (public.has_org_role(public.team_org(team_id),array['owner','admin'])) with check (public.has_org_role(public.team_org(team_id),array['owner','admin']));
@@ -331,7 +391,7 @@ create or replace function public.platform_upsert_team(
   p_labels jsonb
 ) returns uuid
 language plpgsql security definer set search_path=public as $$
-declare v_team uuid; v_org uuid;
+declare v_team uuid; v_org uuid; v_plan uuid;
 begin
   if not public.is_platform_admin() then raise exception 'Solo SUPER_ADMIN puede usar esta función'; end if;
   if p_team_id is null then
@@ -341,6 +401,8 @@ begin
     values(v_org,p_name,p_short_name,p_slug,p_logo_url,p_tagline,p_eyebrow) returning id into v_team;
     insert into public.organization_members(organization_id,user_id,role,status)
     values(v_org,auth.uid(),'owner','active') on conflict do nothing;
+    select id into v_plan from public.plans where code='pro' limit 1;
+    if v_plan is not null then insert into public.subscriptions(organization_id,plan_id,status,trial_ends_at) values(v_org,v_plan,'trialing',now()+interval '14 days'); end if;
   else
     select organization_id into v_org from public.teams where id=p_team_id;
     if v_org is null then raise exception 'Equipo no encontrado'; end if;
@@ -354,6 +416,23 @@ begin
   on conflict(team_id) do update set labels=excluded.labels,updated_at=now();
   insert into public.audit_log(organization_id,team_id,user_id,action,entity_type,entity_id)
   values(v_org,v_team,auth.uid(),case when p_team_id is null then 'team_created' else 'team_updated' end,'team',v_team::text);
+  return v_team;
+end $$;
+
+create or replace function public.platform_add_team_to_organization(
+  p_organization_id uuid,p_name text,p_short_name text,p_slug text,p_logo_url text default null
+) returns uuid language plpgsql security definer set search_path=public as $$
+declare v_team uuid; v_limit integer; v_count integer;
+begin
+  if not public.is_platform_admin() then raise exception 'Solo SUPER_ADMIN puede agregar equipos'; end if;
+  if not exists(select 1 from public.organizations where id=p_organization_id) then raise exception 'Organización no encontrada'; end if;
+  select pf.limit_value into v_limit from public.subscriptions s join public.plan_features pf on pf.plan_id=s.plan_id and pf.feature_code='teams_limit' and pf.enabled=true where s.organization_id=p_organization_id and s.status in ('trialing','active') order by s.created_at desc limit 1;
+  select count(*) into v_count from public.teams where organization_id=p_organization_id and status<>'archived';
+  if v_limit is not null and v_count>=v_limit then raise exception 'El plan actual permite un máximo de % equipo(s)',v_limit; end if;
+  insert into public.teams(organization_id,name,short_name,slug,logo_url) values(p_organization_id,p_name,p_short_name,p_slug,p_logo_url) returning id into v_team;
+  insert into public.team_branding(team_id) values(v_team);
+  insert into public.team_site_settings(team_id) values(v_team);
+  insert into public.audit_log(organization_id,team_id,user_id,action,entity_type,entity_id) values(p_organization_id,v_team,auth.uid(),'team_created','team',v_team::text);
   return v_team;
 end $$;
 
@@ -375,6 +454,7 @@ returns void language plpgsql security definer set search_path=public as $$
 declare v_team uuid; begin
   select team_id into v_team from public.matches where id=p_match_id;
   if not public.has_org_role(public.team_org(v_team),array['owner','admin','capturista']) then raise exception 'Sin permiso'; end if;
+  if not public.org_feature_enabled(public.team_org(v_team),'live_match') then raise exception 'Tu plan no incluye partido en vivo'; end if;
   update public.matches set status='live',started_at=coalesce(started_at,now()),updated_at=now() where id=p_match_id;
 end $$;
 
@@ -392,8 +472,8 @@ returns trigger language plpgsql security definer set search_path=public as $$
 declare v_match uuid; begin
   v_match:=coalesce(new.match_id,old.match_id);
   update public.matches m set
-    goals_for=(select count(*) from public.match_events e where e.match_id=v_match and e.annulled=false and e.event_type in ('goal','own_goal')),
-    goals_against=(select count(*) from public.match_events e where e.match_id=v_match and e.annulled=false and e.event_type='rival_goal'),
+    goals_for=(select count(*) from public.match_events e where e.match_id=v_match and e.annulled=false and e.event_type in ('goal','own_goal_for')),
+    goals_against=(select count(*) from public.match_events e where e.match_id=v_match and e.annulled=false and e.event_type in ('rival_goal','own_goal_against')),
     updated_at=now()
   where m.id=v_match;
   return coalesce(new,old);
@@ -403,12 +483,18 @@ drop trigger if exists trg_recalculate_match_score on public.match_events;
 create trigger trg_recalculate_match_score after insert or update or delete on public.match_events for each row execute function public.recalculate_match_score();
 
 -- ---------- Vista estadísticas ----------
-create or replace view public.v_player_stats as
+create or replace view public.v_player_stats with (security_invoker=true) as
 select p.id,p.team_id,p.first_name,p.last_name,p.jersey_number,p.position,p.photo_url,
  count(distinct case when m.status='finished' then m.id end)::int as matches,
  count(case when e.event_type='goal' and e.annulled=false then 1 end)::int as goals,
  count(case when e.event_type='yellow' and e.annulled=false then 1 end)::int as yellows,
- count(case when e.event_type in ('red','second_yellow','expulsion') and e.annulled=false then 1 end)::int as reds
+ count(case when e.event_type in ('red','second_yellow','expulsion') and e.annulled=false then 1 end)::int as reds,
+ coalesce((select jsonb_object_agg(x.league_id::text,x.goals) from (
+   select m2.league_id,count(*)::int goals from public.match_events e2
+   join public.matches m2 on m2.id=e2.match_id
+   where e2.player_id=p.id and e2.annulled=false and e2.event_type='goal' and m2.league_id is not null
+   group by m2.league_id
+ ) x),'{}'::jsonb) as goals_by_league
 from public.players p
 left join public.matches m on m.team_id=p.team_id
 left join public.match_events e on e.player_id=p.id and e.match_id=m.id
@@ -416,10 +502,10 @@ group by p.id;
 
 -- ---------- Grants ----------
 grant usage on schema public to anon,authenticated;
-grant select on public.organizations,public.teams,public.team_branding,public.team_site_settings,public.players,public.leagues,public.matches,public.match_events,public.sponsors,public.standings,public.v_player_stats to anon,authenticated;
-grant insert,update,delete on public.organization_members,public.teams,public.team_branding,public.team_site_settings,public.players,public.leagues,public.matches,public.match_events,public.sponsors,public.standings to authenticated;
+grant select on public.sports,public.positions,public.organizations,public.teams,public.team_branding,public.team_site_settings,public.players,public.leagues,public.matches,public.match_events,public.match_rosters,public.sponsors,public.standings,public.v_player_stats to anon,authenticated;
+grant insert,update,delete on public.organization_members,public.teams,public.team_branding,public.team_site_settings,public.players,public.leagues,public.matches,public.match_events,public.match_rosters,public.sponsors,public.standings to authenticated;
 grant select on public.organization_members,public.platform_users,public.subscriptions,public.audit_log to authenticated;
-grant execute on function public.platform_upsert_team(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb) to authenticated;
+grant execute on function public.platform_upsert_team(uuid,text,text,text,text,text,text,text,text,text,text,text,text,text,text,jsonb), public.platform_add_team_to_organization(uuid,text,text,text,text) to authenticated;
 grant execute on function public.undo_last_match_event(uuid), public.start_match(uuid), public.finish_match(uuid) to authenticated;
 
 -- ---------- Storage ----------
@@ -519,8 +605,8 @@ create or replace function public.recalculate_match_score(p_match_id uuid)
 returns void language plpgsql security definer set search_path=public as $$
 begin
   update public.matches m set
-    goals_for=(select count(*) from public.match_events e where e.match_id=p_match_id and e.annulled=false and e.event_type in ('goal','own_goal')),
-    goals_against=(select count(*) from public.match_events e where e.match_id=p_match_id and e.annulled=false and e.event_type='rival_goal'),updated_at=now()
+    goals_for=(select count(*) from public.match_events e where e.match_id=p_match_id and e.annulled=false and e.event_type in ('goal','own_goal_for')),
+    goals_against=(select count(*) from public.match_events e where e.match_id=p_match_id and e.annulled=false and e.event_type in ('rival_goal','own_goal_against')),updated_at=now()
   where m.id=p_match_id;
 end $$;
 

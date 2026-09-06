@@ -1,0 +1,2 @@
+import { store } from './store.service.js';
+export const eventsService={all(){return store.get('events',[])},add(e){const all=this.all();all.push({...e,id:crypto.randomUUID(),timestamp:Date.now()});return store.set('events',all)},undo(matchId){const all=this.all();const i=all.map(e=>e.matchId).lastIndexOf(matchId);if(i>=0)all.splice(i,1);store.set('events',all);return all},forMatch(id){return this.all().filter(e=>e.matchId===id)}};
