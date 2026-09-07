@@ -2,7 +2,7 @@ let players = [];
 let selectedLeagueId = '';
 let selectedPosition = '';
 
-let TEAM = window.TeamContext?.team || {name:'Equipo',shortName:'EQUIPO',suffix:'',logo:'',paw:'',season:'Temporada 2026',copy:{}};
+let TEAM = window.TeamContext?.team || {name:'Xolitas F.C.',shortName:'XOLITAS',suffix:'F.C.',logo:'./assets/xolitas-crest.png',paw:'./assets/xolitas-paw.png',season:'Temporada 2026',copy:{}};
 let COPY = TEAM.copy || {};
 const esc = value => escapePublic(String(value ?? ''));
 const teamNameUpper = () => String(TEAM.shortName || TEAM.name || 'EQUIPO').toUpperCase();
@@ -31,7 +31,7 @@ document.querySelector('#app').className='';document.querySelector('#app').inner
 
   <main>
     <section class="hero" id="inicio">
-      ${TEAM.paw?`<div class="hero-paws" aria-hidden="true">${Array.from({length:18},(_,i)=>`<img class="hero-paw hero-paw--${i+1}" src="${esc(TEAM.paw)}" alt="">`).join('')}</div>`:''}
+      <div class="hero-paws" aria-hidden="true">${Array.from({length:18},(_,i)=>`<img class="hero-paw hero-paw--${i+1}" src="${esc(TEAM.paw)}" alt="">`).join('')}</div>
       <div class="hero__crest">${Crest()}</div>
       <div class="hero__copy"><span class="eyebrow">${esc(COPY.heroEyebrow||'Orgullo · Fuerza · Comunidad')}</span><h1>${esc(COPY.heroTitle1||teamNameUpper())}<br><em>${esc(COPY.heroTitle2||TEAM.suffix||'')}</em></h1><p>${COPY.heroTagline||'Una misma cancha.<br>Una sola manada.'}</p><a class="button button--gold" href="#plantilla">Ver plantilla <span>↗</span></a></div>
     </section>
