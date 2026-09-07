@@ -3,8 +3,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 function keyFromEnvironment(name: string, provisionedName: string): string {
   const direct = Deno.env.get(name);
   if (direct) return direct;
-  const named = JSON.parse(Deno.env.get(provisionedName) || '{}');
-  return named.default || '';
+  const provisioned = Deno.env.get(provisionedName) || '';
+  if (!provisioned) return '';
+  try {
+    const named = JSON.parse(provisioned);
+    return typeof named === 'string' ? named : named.default || '';
+  } catch {
+    return '';
+  }
 }
 
 export async function handleRequest(request: Request): Promise<Response> {

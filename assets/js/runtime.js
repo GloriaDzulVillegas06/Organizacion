@@ -103,7 +103,8 @@ const platformService={
      try{
         const source=error.context?.clone?error.context.clone():error.context;
         const body=await source?.json?.();
-        if(body?.error)message=body.error;
+      if(body?.error)message=body.error;
+      else if(body?.message)message=`${body.code?`[${body.code}] `:''}${body.message}`;
      }catch{
         try{const raw=await error.context?.text?.();if(raw)message=String(raw).slice(0,260)}catch{}
      }
