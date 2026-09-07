@@ -19,6 +19,10 @@ begin
   end if;
 end $$;
 
+alter table public.matches add column if not exists elapsed_seconds integer not null default 0 check(elapsed_seconds >= 0);
+alter table public.matches add column if not exists match_period text not null default 'first_half'
+  check(match_period in ('first_half','halftime','second_half'));
+
 -- La pagina publica necesita leer cambios, pero RLS sigue controlando las filas.
 grant select on public.matches,public.match_events to anon,authenticated;
 
@@ -32,7 +36,7 @@ begin
   end if;
   update public.match_events set annulled=true,annulled_at=now(),annulled_by=auth.uid()
     where match_id=p_match_id and team_id=v_team_id and annulled=false;
-  update public.matches set status='scheduled',goals_for=0,goals_against=0,started_at=null,ended_at=null,updated_at=now()
+  update public.matches set status='scheduled',goals_for=0,goals_against=0,started_at=null,ended_at=null,elapsed_seconds=0,match_period='first_half',updated_at=now()
     where id=p_match_id;
 end $$;
 revoke all on function public.reset_match_for_capture(uuid) from public,anon;
