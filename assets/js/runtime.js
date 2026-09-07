@@ -108,8 +108,9 @@ const platformService={
      }catch{
         try{const raw=await error.context?.text?.();if(raw)message=String(raw).slice(0,260)}catch{}
      }
-     if(message==='No se pudo enviar la invitación. Comprueba tu sesión y vuelve a intentarlo.'){
+      if(message==='No se pudo enviar la invitación. Comprueba tu sesión y vuelve a intentarlo.'){
         if(status===404)message='La función invite-member no está desplegada en Supabase.';
+         else if(status===500)message='La función invite-member falló en Supabase. Revisa los secrets y los logs de la función.';
         else if(status===401)message='Tu sesión venció. Cierra sesión y vuelve a iniciar para invitar.';
         else if(status===403)message='No tienes permisos para invitar en esta organización o la URL del sitio no coincide con PUBLIC_APP_URL.';
         else if(status===429)message='Se alcanzó el límite de envíos. Espera un minuto y vuelve a intentar.';

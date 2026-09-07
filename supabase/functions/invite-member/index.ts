@@ -21,10 +21,11 @@ export async function handleRequest(request: Request): Promise<Response> {
     'Cache-Control': 'no-store',
     'Vary': 'Origin',
   };
+  const requestOrigin = request.headers.get('Origin') || '';
+  if (requestOrigin) headers['Access-Control-Allow-Origin'] = requestOrigin;
   const respond = (status: number, body: Record<string, unknown>) =>
     new Response(JSON.stringify(body), { status, headers });
   try {
-    const requestOrigin = request.headers.get('Origin') || '';
     if (request.method === 'OPTIONS') {
       headers['Access-Control-Allow-Origin'] = requestOrigin || '*';
       return new Response(null, { status: 204, headers });
