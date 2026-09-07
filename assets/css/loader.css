@@ -1,4 +1,4 @@
-.loading-page,.admin-loader{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:22px;background:radial-gradient(circle,#68245f,#260b29 70%);z-index:999;color:white}
+.loading-page,.admin-loader{position:fixed;inset:0;display:grid;place-content:center;justify-items:center;gap:18px;background:radial-gradient(circle,#68245f,#260b29 70%);z-index:999;color:white;overflow:hidden}
 .loading-page img,.admin-loader img{width:140px;filter:drop-shadow(0 18px 25px #0006)}
 .loading-ring,.admin-loader span{width:34px;height:34px;border:3px solid #ffffff30;border-top-color:#dcb965;border-radius:50%;animation:loading-spin .8s linear infinite}
 .rival-logo{width:50px;height:54px;object-fit:contain}
