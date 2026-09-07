@@ -54,7 +54,10 @@ document.querySelector('#app').className='';document.querySelector('#app').inner
     <section class="scorers section" id="goleadoras">
       <div class="scorers__intro"><span class="eyebrow">${esc(COPY.scorersEyebrow||'El gol tiene nombre')}</span><h2>${esc(COPY.scorersTitle1||'LAS QUE')}<br><em>${esc(COPY.scorersTitle2||'DEFINEN.')}</em></h2><p>${COPY.scorersDesc||'Precisión, instinto y una ambición que no negocia.'}</p><label class="league-filter">Estadísticas de<select id="public-league"><option value="">Todas las ligas</option>${leagues.map(l=>`<option value="${l.id}" ${String(l.id)===String(selectedLeagueId)?'selected':''}>${l.nombre}</option>`).join('')}</select></label><div class="season">${selectedLeague?.nombre||'Histórico general'}</div></div>
       <div class="ranking">
-        ${scorers.length?scorers.slice(0,3).map((p,i) => `<article class="rank rank--${i+1}"><span class="rank__place">0${i+1}</span><div class="rank__avatar" style="--photo:${p.photo}"></div><div><small>${p.position}</small><h3>${p.name} ${p.last}</h3></div><strong>${p.goals}<small>GOLES</small></strong>${i===0?'<span class="rank__star">✦</span>':''}</article>`).join(''):'<p class="public-empty public-empty--light">No hay goles registrados en esta liga.</p>'}
+        ${scorers.length?scorers.slice(0,3).map((p,i) => {
+          const imageStyle=p.photoUrl?`--player-image:url('${esc(String(p.photoUrl).replace(/'/g,'%27'))}');--player-size:cover;--player-position:center top`:'';
+          return `<article class="rank rank--${i+1}"><span class="rank__place">0${i+1}</span><div class="rank__avatar" style="--photo:${p.photoIndex??0};${imageStyle}"></div><div><small>${p.position}</small><h3>${p.name} ${p.last}</h3></div><strong>${p.goals}<small>GOLES</small></strong>${i===0?'<span class="rank__star">✦</span>':''}</article>`;
+        }).join(''):'<p class="public-empty public-empty--light">No hay goles registrados en esta liga.</p>'}
       </div>
     </section>
 
