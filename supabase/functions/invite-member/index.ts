@@ -14,6 +14,7 @@ function keyFromEnvironment(name: string, provisionedName: string): string {
 }
 
 export async function handleRequest(request: Request): Promise<Response> {
+  let stage = 'start';
   const headers: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -26,11 +27,15 @@ export async function handleRequest(request: Request): Promise<Response> {
   const respond = (status: number, body: Record<string, unknown>) =>
     new Response(JSON.stringify(body), { status, headers });
   try {
+    stage = 'preflight';
     if (request.method === 'OPTIONS') {
       headers['Access-Control-Allow-Origin'] = requestOrigin || '*';
       return new Response(null, { status: 204, headers });
     }
-    const configuredAppUrl = Deno.env.get('PUBLIC_APP_URL') || '';
+    stage = 'config';
+    const configuredAppUrl = (Deno.env.get('PUBLIC_APP_URL') || '')
+      .trim()
+      .replace(/^PUBLIC_APP_URL\s*=\s*/i, '');
     if (!configuredAppUrl) return respond(500, { error: 'Falta configurar PUBLIC_APP_URL en los secrets de invite-member.' });
     const appUrl = new URL(configuredAppUrl);
     if (appUrl.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(appUrl.hostname)) {
@@ -44,6 +49,7 @@ export async function handleRequest(request: Request): Promise<Response> {
       return respond(403, { error: 'Origen no permitido.' });
     }
     if (request.method !== 'POST') return respond(405, { error: 'Metodo no permitido.' });
+    stage = 'authorization';
     const authorization = request.headers.get('Authorization') || '';
     if (!/^Bearer\s+\S+$/i.test(authorization)) {
       return respond(401, { error: 'Debes iniciar sesion.' });
@@ -55,9 +61,11 @@ export async function handleRequest(request: Request): Promise<Response> {
       return respond(500, { error: 'Falta configurar las claves de Supabase en los secrets de invite-member.' });
     }
     const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+    stage = 'client';
     const caller = createClient(supabaseUrl, publishableKey, {
       ...options, global: { headers: { Authorization: authorization } },
     });
+    stage = 'identity';
     const { data: identity, error: identityError } = await caller.auth.getUser(authorization.replace(/^Bearer\s+/i, ''));
     if (identityError || !identity.user) return respond(401, { error: 'La sesion no es valida. Inicia sesion nuevamente.' });
     let body;
@@ -74,6 +82,7 @@ export async function handleRequest(request: Request): Promise<Response> {
     if (!['owner', 'admin', 'capturista', 'entrenador', 'viewer'].includes(role)) {
       return respond(400, { error: 'Rol invalido.' });
     }
+    stage = 'invite-rpc';
     const { data: invitationId, error: invitationError } = await caller.rpc('invite_organization_member', {
       p_organization_id: organizationId, p_email: email, p_role: role,
     });
@@ -81,10 +90,12 @@ export async function handleRequest(request: Request): Promise<Response> {
       const status = invitationError.code === '42501' ? 403 : invitationError.code === '22023' ? 400 : 500;
       return respond(status, { error: status === 500 ? 'No se pudo registrar la invitacion.' : invitationError.message });
     }
+    stage = 'admin-client';
     const admin = createClient(supabaseUrl, secretKey, options);
     const complete = () => admin.rpc('complete_member_invitation', {
       p_invitation_id: invitationId, p_actor_id: identity.user.id,
     });
+    stage = 'member-resolution';
     let { data: resolution, error: resolutionError } = await complete();
     if (resolutionError) {
       return respond(resolutionError.code === '42501' ? 403 : 400, { error: 'No se pudo procesar esta invitacion. Comprueba tus permisos.' });
@@ -96,6 +107,7 @@ export async function handleRequest(request: Request): Promise<Response> {
     const redirectTo = `${appUrl.toString().replace(/\/$/, '')}/aceptar-invitacion.html`;
     let mailError;
     if (resolution?.kind === 'new') {
+      stage = 'auth-invite';
       const result = await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo,
         data: { organization_id: organizationId, organization_role: role, invitation_id: invitationId },
@@ -110,6 +122,7 @@ export async function handleRequest(request: Request): Promise<Response> {
       }
     }
     if (resolution?.kind === 'unconfirmed') {
+      stage = 'auth-otp';
       const authClient = createClient(supabaseUrl, publishableKey, options);
       const result = await authClient.auth.signInWithOtp({
         email, options: { shouldCreateUser: false, emailRedirectTo: redirectTo },
@@ -125,9 +138,10 @@ export async function handleRequest(request: Request): Promise<Response> {
       });
     }
     return respond(200, { status: 'pending', message: 'Invitaci\u00f3n enviada por correo.' });
-  } catch {
-    console.error('invite-member: configuration or upstream failure');
-    return respond(500, { error: 'No se pudo enviar la invitacion. Revisa la configuracion de la funcion.' });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    console.error('invite-member failure', { stage, error: detail });
+    return respond(500, { error: `La funcion fallo en la etapa ${stage}. Revisa los logs de Supabase.` });
   }
 }
 

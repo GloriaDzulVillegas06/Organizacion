@@ -216,6 +216,40 @@ $$;
 revoke all on function public.list_organization_members(uuid) from public,anon;
 grant execute on function public.list_organization_members(uuid) to authenticated;
 
+create or replace function public.set_organization_member_role(
+  p_organization_id uuid,p_member_id uuid,p_role text
+) returns void language plpgsql security definer set search_path=public as $$
+declare actor_role text; target_role text; target_user uuid; invitation_status text;
+begin
+  if auth.uid() is null or p_role is null or p_role not in ('owner','admin','capturista','entrenador','viewer') then
+    raise exception 'Rol invalido' using errcode='22023';
+  end if;
+  if public.is_platform_admin() then actor_role:='platform_admin';
+  else
+    select member.role into actor_role from public.organization_members member
+      where member.organization_id=p_organization_id and member.user_id=auth.uid() and member.status='active';
+    if actor_role is null or actor_role not in ('owner','admin') then
+      raise exception 'Sin permiso para modificar usuarios' using errcode='42501';
+    end if;
+  end if;
+  select member.role,member.user_id into target_role,target_user from public.organization_members member
+    where member.id=p_member_id and member.organization_id=p_organization_id and member.status<>'disabled' for update;
+  if target_user is not null then
+    if actor_role='admin' and (target_role='owner' or p_role='owner' or target_user=auth.uid()) then
+      raise exception 'Solo owner o SUPER_ADMIN puede modificar este usuario' using errcode='42501';
+    end if;
+    if target_user=auth.uid() and actor_role<>'platform_admin' then raise exception 'No puedes cambiar tu propio rol' using errcode='42501'; end if;
+    update public.organization_members set role=p_role where id=p_member_id; return;
+  end if;
+  select invitation.status into invitation_status from public.invitations invitation
+    where invitation.id=p_member_id and invitation.organization_id=p_organization_id and invitation.status='pending' for update;
+  if invitation_status is null then raise exception 'Usuario o invitacion no encontrado' using errcode='22023'; end if;
+  if actor_role='admin' and p_role='owner' then raise exception 'Solo owner o SUPER_ADMIN puede asignar owner' using errcode='42501'; end if;
+  update public.invitations set role=p_role where id=p_member_id;
+end $$;
+revoke all on function public.set_organization_member_role(uuid,uuid,text) from public,anon;
+grant execute on function public.set_organization_member_role(uuid,uuid,text) to authenticated;
+
 do $$
 begin
   if to_regprocedure('public.activate_existing_invited_member(uuid,text,text)') is not null then

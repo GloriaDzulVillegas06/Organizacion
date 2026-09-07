@@ -49,7 +49,7 @@ Nunca guardar Secret Key, service role, contrasenas SMTP ni tokens CLI en HTML, 
 
 Supabase no permite crear secrets personalizados cuyo nombre empiece por `SUPABASE_`. Por eso los nombres propios usan el prefijo `APP_`. En Supabase hospedado la funcion usa como respaldo las variables provisionadas `SUPABASE_PUBLISHABLE_KEYS` y `SUPABASE_SECRET_KEYS`, tomando la clave `default`; no intentes sobrescribir esas variables reservadas.
 
-En Dashboard > Edge Functions > Secrets configurar `PUBLIC_APP_URL`, `APP_SUPABASE_PUBLISHABLE_KEY` y `APP_SUPABASE_SECRET_KEY` si tu proyecto no expone correctamente las claves provisionadas. La funcion calcula la URL de aceptacion y CORS desde esa variable, sin dominio productivo hardcodeado. No poner una barra final, query ni fragmento. HTTPS es obligatorio salvo localhost.
+En Dashboard > Edge Functions > Secrets configurar `PUBLIC_APP_URL`, `APP_SUPABASE_PUBLISHABLE_KEY` y `APP_SUPABASE_SECRET_KEY` si tu proyecto no expone correctamente las claves provisionadas. En el campo **Value** escribe solo el valor, sin el nombre ni `=`. Correcto: `https://gloriadzulvillegas06.github.io/Organizacion`. Incorrecto: `PUBLIC_APP_URL=https://gloriadzulvillegas06.github.io/Organizacion`. La funcion calcula la URL de aceptacion y CORS desde esa variable, sin dominio productivo hardcodeado. No poner una barra final, query ni fragmento. HTTPS es obligatorio salvo localhost.
 
 ## 3. Desplegar la funcion
 
@@ -100,6 +100,8 @@ Mantener `{{ .ConfirmationURL }}` como destino del enlace. No sustituirlo por la
 Una cuenta nueva recibe `auth.admin.inviteUserByEmail`. Una cuenta que existe pero aun no confirmo el correo recibe `signInWithOtp` con `shouldCreateUser:false`; configurar tambien Email Templates > Magic Link y conservar `{{ .ConfirmationURL }}`. Se usa este mecanismo para reenviar sin duplicar cuenta ni activarla prematuramente. Si Auth tiene CAPTCHA habilitado para OTP, este reenvio requerira adaptar la verificacion CAPTCHA antes de usarlo; no deshabilitar CAPTCHA globalmente como solucion silenciosa.
 
 Un usuario EXISTENTE Y CONFIRMADO recibe directamente su membresia activa; no se cambia su contrasena ni se envia otra invitacion Auth. La respuesta es: "El usuario ya tenia cuenta y fue agregado al equipo."
+
+En Usuarios y permisos, owner, admin y SUPER_ADMIN pueden modificar el rol de una membresia. El backend no confia en el selector: un admin no puede modificar un owner, asignar owner ni cambiar su propio rol; owner y SUPER_ADMIN si pueden hacerlo. Las invitaciones pendientes tambien pueden recibir un cambio de rol desde ese mismo control.
 
 Un fallo SMTP deja la invitacion pendiente y devuelve error. Reintentar pasado un minuto. No hay transaccion distribuida entre SQL y correo: si se corta la respuesta despues de enviar, comprobar bandeja y lista antes de reintentar. La vigencia SQL es de 7 dias; el enlace Auth puede vencer antes segun la configuracion del proyecto. Se requieren ambos vigentes.
 

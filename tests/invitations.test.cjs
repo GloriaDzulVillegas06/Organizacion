@@ -54,12 +54,21 @@ test('SQL incremental: permisos, aceptacion propia y cuentas existentes',async c
   await db.query("select set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claims',$2,false)",[user||'',JSON.stringify({email})]);
   await db.exec('set role authenticated');
  }
+ const memberId=async user=>(await db.query('select id from public.organization_members where organization_id=$1 and user_id=$2',[orgA,user])).rows[0].id;
  const invite=async(org,email,role='capturista')=>(await db.query('select public.invite_organization_member($1,$2,$3) as id',[org,email,role])).rows[0].id;
  const rpc=async(name)=>(await db.query(`select public.${name}() as result`)).rows[0].result;
  const complete=async(invitation,actor)=>{
   await db.exec('set role service_role');
   return (await db.query('select public.complete_member_invitation($1,$2) as result',[invitation,actor])).rows[0].result;
  };
+ await asUser(admin,'admin@test.example');
+ await db.query("select public.set_organization_member_role($1,$2,'entrenador')",[orgA,await memberId(viewer)]);
+ await assert.rejects(db.query("select public.set_organization_member_role($1,$2,'owner')",[orgA,await memberId(viewer)]),/owner|permiso/i);
+ await assert.rejects(db.query("select public.set_organization_member_role($1,$2,'viewer')",[orgA,await memberId(admin)]),/propio|permiso|owner/i);
+ await assert.rejects(db.query("select public.set_organization_member_role($1,$2,'viewer')",[orgA,await memberId(owner)]),/owner|permiso/i);
+ await asUser(globalAdmin,'global@test.example');
+ await db.query("select public.set_organization_member_role($1,$2,'admin')",[orgA,await memberId(owner)]);
+ await db.query("select public.set_organization_member_role($1,$2,'owner')",[orgA,await memberId(owner)]);
  await asUser(owner,'owner@test.example');
  await assert.rejects(invite(orgB,'blocked@test.example'),/permiso/i);
  await assert.rejects(invite(orgA,'bad-email'),/Correo invalido/);

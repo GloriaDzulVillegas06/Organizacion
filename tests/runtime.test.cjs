@@ -38,11 +38,11 @@ test('login hidrata los permisos del equipo y logout los limpia',async()=>{
  assert.equal(app.authService.can('manageMembers'),false);
 });
 
-test('SUPER_ADMIN conserva plataforma pero no suplanta membresia para invitar',async()=>{
+test('SUPER_ADMIN puede administrar roles sin suplantar el rol organizacional',async()=>{
  const {app}=await runtime({platformRole:'super_admin'});
  assert.equal((await app.authService.session()).platformRole,'super_admin');
  assert.equal(app.authService.can('manageTeam'),true);
- assert.equal(app.authService.can('manageMembers'),false);
+ assert.equal(app.authService.can('manageMembers'),true);
 });
 
 test('inviteMember usa Edge Function, email normalizado y rol solicitado',async()=>{
