@@ -21,8 +21,8 @@ async function exercise(scenario: Scenario, check: (send: (body?: unknown, optio
   const variables: Record<string, string> = {
     PUBLIC_APP_URL: `${origin}/Organizacion`,
     SUPABASE_URL: 'https://test.supabase.co',
-    SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_placeholder',
-    SUPABASE_SECRET_KEY: 'sb_secret_test_placeholder',
+    APP_SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_test_placeholder',
+    APP_SUPABASE_SECRET_KEY: 'sb_secret_test_placeholder',
   };
   const previous = new Map(Object.keys(variables).map(name => [name, Deno.env.get(name)]));
   Object.entries(variables).forEach(([name, value]) => Deno.env.set(name, value));

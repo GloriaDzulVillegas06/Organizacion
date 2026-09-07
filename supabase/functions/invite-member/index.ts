@@ -1,9 +1,9 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-function keyFromEnvironment(name: string): string {
+function keyFromEnvironment(name: string, provisionedName: string): string {
   const direct = Deno.env.get(name);
   if (direct) return direct;
-  const named = JSON.parse(Deno.env.get(`${name}S`) || '{}');
+  const named = JSON.parse(Deno.env.get(provisionedName) || '{}');
   return named.default || '';
 }
 
@@ -18,7 +18,9 @@ export async function handleRequest(request: Request): Promise<Response> {
   const respond = (status: number, body: Record<string, unknown>) =>
     new Response(JSON.stringify(body), { status, headers });
   try {
-    const appUrl = new URL(Deno.env.get('PUBLIC_APP_URL') || '');
+    const configuredAppUrl = Deno.env.get('PUBLIC_APP_URL') || '';
+    if (!configuredAppUrl) return respond(500, { error: 'Falta configurar PUBLIC_APP_URL en los secrets de invite-member.' });
+    const appUrl = new URL(configuredAppUrl);
     if (appUrl.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(appUrl.hostname)) {
       throw new Error('PUBLIC_APP_URL must use HTTPS');
     }
@@ -36,9 +38,11 @@ export async function handleRequest(request: Request): Promise<Response> {
       return respond(401, { error: 'Debes iniciar sesion.' });
     }
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const publishableKey = keyFromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-    const secretKey = keyFromEnvironment('SUPABASE_SECRET_KEY');
-    if (!supabaseUrl || !publishableKey || !secretKey) throw new Error('Missing server configuration');
+    const publishableKey = keyFromEnvironment('APP_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_PUBLISHABLE_KEYS');
+    const secretKey = keyFromEnvironment('APP_SUPABASE_SECRET_KEY', 'SUPABASE_SECRET_KEYS');
+    if (!supabaseUrl || !publishableKey || !secretKey) {
+      return respond(500, { error: 'Falta configurar las claves de Supabase en los secrets de invite-member.' });
+    }
     const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
     const caller = createClient(supabaseUrl, publishableKey, {
       ...options, global: { headers: { Authorization: authorization } },

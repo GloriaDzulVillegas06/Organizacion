@@ -97,7 +97,25 @@ const platformService={
   email=email.trim().toLowerCase();
   if(demo){const rows=store.get(`demo_invites_${orgId}`,[]),r={id:makeId(),email,role,status:'pending',message:'Invitación simulada. No se envió ningún correo.'};rows.push(r);store.set(`demo_invites_${orgId}`,rows);return r}
   const {data,error}=await sb.functions.invoke('invite-member',{body:{organization_id:orgId,email,role}});
-  if(error){let message='No se pudo enviar la invitación. Comprueba tu sesión y vuelve a intentarlo.';try{const body=await error.context?.json();if(body?.error)message=body.error}catch{}throw new Error(message)}
+    if(error){
+     let message='No se pudo enviar la invitación. Comprueba tu sesión y vuelve a intentarlo.';
+     const status=error.context?.status;
+     try{
+        const source=error.context?.clone?error.context.clone():error.context;
+        const body=await source?.json?.();
+        if(body?.error)message=body.error;
+     }catch{
+        try{const raw=await error.context?.text?.();if(raw)message=String(raw).slice(0,260)}catch{}
+     }
+     if(message==='No se pudo enviar la invitación. Comprueba tu sesión y vuelve a intentarlo.'){
+        if(status===404)message='La función invite-member no está desplegada en Supabase.';
+        else if(status===401)message='Tu sesión venció. Cierra sesión y vuelve a iniciar para invitar.';
+        else if(status===403)message='No tienes permisos para invitar en esta organización o la URL del sitio no coincide con PUBLIC_APP_URL.';
+        else if(status===429)message='Se alcanzó el límite de envíos. Espera un minuto y vuelve a intentar.';
+        else if(error.message&&/Failed to fetch|NetworkError/i.test(error.message))message='No se pudo contactar la función de invitaciones. Revisa conexión, CORS y despliegue.';
+     }
+     throw new Error(message)
+    }
   return data;
  },
  async uploadTeamFile(file,folder='misc'){if(demo)return await fileToDataUrl(file);const path=`teams/${teamState.id}/${folder}/${Date.now()}-${String(file.name).replace(/[^a-zA-Z0-9._-]/g,'-')}`;const {error}=await sb.storage.from(CONFIG.STORAGE_BUCKET||'team-assets').upload(path,file,{upsert:false});if(error)throw error;return sb.storage.from(CONFIG.STORAGE_BUCKET||'team-assets').getPublicUrl(path).data.publicUrl},

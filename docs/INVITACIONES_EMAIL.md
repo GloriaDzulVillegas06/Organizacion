@@ -43,13 +43,13 @@ Nunca guardar Secret Key, service role, contrasenas SMTP ni tokens CLI en HTML, 
 | Variable | Configuracion |
 | --- | --- |
 | `SUPABASE_URL` | URL del proyecto, provisionada por Supabase |
-| `SUPABASE_PUBLISHABLE_KEY` | Publishable key del mismo proyecto, para cliente con JWT del invitador |
-| `SUPABASE_SECRET_KEY` | Secret key administrativa, SOLO dentro de Edge Functions |
+| `APP_SUPABASE_PUBLISHABLE_KEY` | Publishable key del mismo proyecto, para cliente con JWT del invitador |
+| `APP_SUPABASE_SECRET_KEY` | Secret key administrativa, SOLO dentro de Edge Functions |
 | `PUBLIC_APP_URL` | `https://gloriadzulvillegas06.github.io/Organizacion` |
 
-Compatibilidad con Supabase hospedado: actualmente provisiona `SUPABASE_PUBLISHABLE_KEYS` y `SUPABASE_SECRET_KEYS` como objetos JSON de claves nombradas. El codigo usa su entrada `default` cuando no existen las variables singulares. Estas variables de sistema pueden estar reservadas: no intentar sobrescribirlas con `supabase secrets set`. Verificar en Settings > API Keys que las claves modernas estan disponibles con nombre `default`. En un entorno local/autogestionado se pueden proporcionar las variables singulares indicadas arriba.
+Supabase no permite crear secrets personalizados cuyo nombre empiece por `SUPABASE_`. Por eso los nombres propios usan el prefijo `APP_`. En Supabase hospedado la funcion usa como respaldo las variables provisionadas `SUPABASE_PUBLISHABLE_KEYS` y `SUPABASE_SECRET_KEYS`, tomando la clave `default`; no intentes sobrescribir esas variables reservadas.
 
-En Dashboard > Edge Functions > Secrets configurar `PUBLIC_APP_URL`. La funcion calcula la URL de aceptacion y CORS desde esa variable, sin dominio productivo hardcodeado. No poner una barra final, query ni fragmento. HTTPS es obligatorio salvo localhost.
+En Dashboard > Edge Functions > Secrets configurar `PUBLIC_APP_URL`, `APP_SUPABASE_PUBLISHABLE_KEY` y `APP_SUPABASE_SECRET_KEY` si tu proyecto no expone correctamente las claves provisionadas. La funcion calcula la URL de aceptacion y CORS desde esa variable, sin dominio productivo hardcodeado. No poner una barra final, query ni fragmento. HTTPS es obligatorio salvo localhost.
 
 ## 3. Desplegar la funcion
 
