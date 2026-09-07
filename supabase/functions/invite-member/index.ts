@@ -24,6 +24,11 @@ export async function handleRequest(request: Request): Promise<Response> {
   const respond = (status: number, body: Record<string, unknown>) =>
     new Response(JSON.stringify(body), { status, headers });
   try {
+    const requestOrigin = request.headers.get('Origin') || '';
+    if (request.method === 'OPTIONS') {
+      headers['Access-Control-Allow-Origin'] = requestOrigin || '*';
+      return new Response(null, { status: 204, headers });
+    }
     const configuredAppUrl = Deno.env.get('PUBLIC_APP_URL') || '';
     if (!configuredAppUrl) return respond(500, { error: 'Falta configurar PUBLIC_APP_URL en los secrets de invite-member.' });
     const appUrl = new URL(configuredAppUrl);
@@ -34,10 +39,9 @@ export async function handleRequest(request: Request): Promise<Response> {
       throw new Error('Invalid PUBLIC_APP_URL');
     }
     headers['Access-Control-Allow-Origin'] = appUrl.origin;
-    if (request.headers.get('Origin') && request.headers.get('Origin') !== appUrl.origin) {
+    if (requestOrigin && requestOrigin !== appUrl.origin) {
       return respond(403, { error: 'Origen no permitido.' });
     }
-    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (request.method !== 'POST') return respond(405, { error: 'Metodo no permitido.' });
     const authorization = request.headers.get('Authorization') || '';
     if (!/^Bearer\s+\S+$/i.test(authorization)) {

@@ -1,2 +1,2 @@
 [functions.invite-member]
-verify_jwt = true
+verify_jwt = false

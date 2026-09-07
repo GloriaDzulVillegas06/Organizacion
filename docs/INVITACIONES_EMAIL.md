@@ -74,7 +74,7 @@ supabase secrets set --env-file C:\ruta-privada\invite-member.env
 
 No incluir las variables reservadas provisionadas por Supabase en ese archivo de produccion. Para servir localmente, usar `supabase functions serve invite-member --env-file C:\ruta-privada\invite-member.env` con URL, claves locales y `PUBLIC_APP_URL` del servidor local.
 
-`supabase/config.toml` mantiene `verify_jwt = true`. Ademas, el handler valida explicitamente el token con `auth.getUser(jwt)` antes de cualquier RPC. El frontend usa `supabase.functions.invoke`, que envia automaticamente el JWT de su sesion. No desactivar autenticacion para resolver un 401: verificar sesion, proyecto y configuracion JWT primero.
+`supabase/config.toml` usa `verify_jwt = false` únicamente para que el gateway deje pasar el preflight CORS `OPTIONS`. El handler valida explícitamente el token con `auth.getUser(jwt)` antes de cualquier RPC y rechaza cualquier POST sin Bearer válido. El frontend usa `supabase.functions.invoke`, que envía automáticamente el JWT de su sesión. No quitar la validación manual ni aceptar POST anónimos para resolver un 401.
 
 Publicar los archivos frontend actualizados en GitHub Pages despues de aplicar SQL y desplegar la funcion. El proyecto sigue siendo estatico; no necesita bundler ni build. `package.json` contiene solo herramientas de pruebas y no cambia el despliegue.
 
