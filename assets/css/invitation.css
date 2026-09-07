@@ -1,0 +1,13 @@
+body[data-page="invitation"] .login-form-wrap{min-width:0}
+body[data-page="invitation"] .login-box{width:100%;min-width:0;max-width:420px}
+body[data-page="invitation"] .login-box h1{font-size:40px;letter-spacing:0;overflow-wrap:anywhere}
+body[data-page="invitation"] .login-art{background:linear-gradient(140deg,var(--team-primary),var(--p7))}
+body[data-page="invitation"] .login-art img{aspect-ratio:1;object-fit:contain}
+#invitation-email,#invitation-status,#invitation-team{overflow-wrap:anywhere}
+#invitation-team{display:inline-block;max-width:100%;letter-spacing:0}
+#invitation-status{min-height:2.5em;font-size:13px;line-height:1.5}
+#invitation-login{margin-top:16px;color:var(--team-primary)}
+#invitation-login:not([hidden]){display:block}
+#invitation-form input{min-width:0;width:100%}
+#accept-invitation{min-height:48px;white-space:normal;letter-spacing:0}
+#accept-invitation:disabled{opacity:.6;cursor:wait}

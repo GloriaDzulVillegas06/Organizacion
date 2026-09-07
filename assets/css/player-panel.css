@@ -1,0 +1,41 @@
+.player-panel{min-width:0}
+.player-panel .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.player-panel h2{font-family:var(--display);font-size:28px;letter-spacing:0;margin:28px 0 16px}
+.player-panel .filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-bottom:24px}
+.player-panel .filters .field{flex:1 1 150px;min-width:0}
+.player-panel .filters input,.player-panel .filters select{width:100%;min-width:0}
+.player-profile{display:flex;align-items:center;gap:18px;margin-bottom:24px}
+.player-profile img{width:76px;height:76px;object-fit:cover;border-radius:4px}
+.player-profile h2{margin:0;overflow-wrap:anywhere}
+.player-panel .table-scroll{width:100%;overflow:auto;margin-bottom:24px}
+.player-panel table{min-width:650px}
+.player-panel td{overflow-wrap:anywhere;max-width:280px}
+.player-panel select,.player-panel input{font:inherit;padding:10px;border:1px solid #dfd2dc;border-radius:4px;background:white;color:var(--ink)}
+.player-panel select{max-width:100%}
+.player-panel button{min-height:42px;letter-spacing:0;white-space:normal}
+.player-panel button:disabled{opacity:.6;cursor:wait}
+.player-panel .stat-card strong{font-size:32px;letter-spacing:0}
+.player-panel .record-form{display:grid;grid-template-columns:repeat(2,minmax(150px,1fr));gap:10px;min-width:340px}
+.player-panel .record-form label{display:flex;gap:8px;align-items:center;font-size:12px}
+.player-panel .link-form{display:flex;gap:8px;align-items:center;min-width:340px}
+.player-panel .link-form input{min-width:0;flex:1}
+.player-panel .feedback{min-height:24px;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.player-panel .section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.panel-logout{min-height:42px;letter-spacing:0}
+body[data-page="attendance"] .topbar,body[data-page="player-panel"] .topbar{flex-wrap:wrap;gap:12px}
+body[data-page="attendance"] .admin-main,body[data-page="player-panel"] .admin-main{min-width:0}
+body[data-page="attendance"] .sidebar,body[data-page="player-panel"] .sidebar{overflow-y:auto}
+body[data-page="attendance"] .sidebar nav,body[data-page="player-panel"] .sidebar nav{margin-top:24px}
+body[data-page="attendance"] .sidebar footer,body[data-page="player-panel"] .sidebar footer{position:static;margin-top:24px}
+@media(max-width:900px){body[data-page="attendance"] .sidebar,body[data-page="player-panel"] .sidebar{overflow:visible}}
+@media(max-width:560px){.player-panel .filters .field{flex-basis:100%}.player-panel .stat-card strong{font-size:26px}.player-profile img{width:60px;height:60px}}
+@media(max-width:700px){
+ body[data-page="player-panel"] .table-scroll table,.record-table table,.link-table table{display:block;min-width:0}
+ body[data-page="player-panel"] .table-scroll thead,.record-table thead,.link-table thead{display:none}
+ body[data-page="player-panel"] .table-scroll tbody,.record-table tbody,.link-table tbody{display:block}
+ body[data-page="player-panel"] .table-scroll tr,.record-table tr,.link-table tr{display:block;padding:12px 0;border-bottom:2px solid var(--m1)}
+ body[data-page="player-panel"] .table-scroll td,.record-table td,.link-table td{display:block;max-width:none;border:0;padding:8px 4px;font-size:13px}
+ body[data-page="player-panel"] .table-scroll td::before,.record-table td::before,.link-table td::before{content:attr(data-label);display:block;color:var(--muted);font-size:11px;margin-bottom:6px}
+ .player-panel .record-form,.player-panel .link-form{min-width:0;display:grid;grid-template-columns:1fr}
+ .player-panel .record-form select,.player-panel .link-form input{width:100%;min-width:0}
+}

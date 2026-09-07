@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Activar cuenta | Xolitas F.C.</title>
+  <link rel="icon" href="assets/favicon.png">
+  <link rel="stylesheet" href="assets/css/admin.css">
+  <link rel="stylesheet" href="assets/css/invitation.css">
+  <script defer src="assets/js/invitation.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="assets/js/config.js"></script>
+  <script defer src="assets/js/runtime.js"></script>
+</head>
+<body data-page="invitation">
+  <main class="login-page">
+    <section class="login-art"><img id="invitation-logo" src="assets/xolitas-crest.png" alt="Xolitas F.C."></section>
+    <section class="login-form-wrap">
+      <form class="login-box" id="invitation-form">
+        <span class="badge" id="invitation-team">Xolitas F.C.</span>
+        <h1>ACTIVAR CUENTA</h1>
+        <p id="invitation-email"></p>
+        <div class="field"><label for="new-password">Nueva contrase&#241;a</label><input id="new-password" type="password" autocomplete="new-password" minlength="8" required disabled></div>
+        <div class="field"><label for="confirm-password">Confirmar contrase&#241;a</label><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required disabled></div>
+        <p id="invitation-status" role="status" aria-live="polite">Verificando invitaci&#243;n...</p>
+        <button class="primary" id="accept-invitation" type="submit" disabled>Aceptar invitaci&#243;n</button>
+        <a id="invitation-login" href="admin/login.html" hidden>Ir al acceso</a>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
