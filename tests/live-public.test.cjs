@@ -11,3 +11,8 @@ test('la vista publica solo muestra goleadoras de Xolitas',()=>{
  assert.deepEqual(localGoals.map(goal=>goal.jugadoraNombre),['Jessica','Andrea']);
  assert.equal(localGoals.some(goal=>goal.jugadoraNombre==='Rival'),false);
 });
+
+test('la vista publica conserva minutos y segundos del gol',()=>{
+ const goal={minuto:1,segundo:40};
+ assert.equal(`${goal.minuto}' ${String(goal.segundo).padStart(2,'0')}"`, '1\' 40"');
+});
