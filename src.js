@@ -76,6 +76,7 @@ document.querySelector('#app').className='';document.querySelector('#app').inner
   </dialog>
 `;
 
+if(live){const section=document.createElement('section');section.className='public-live section';section.id='en-vivo';section.setAttribute('aria-live','polite');section.innerHTML=`<div class="public-live__heading"><span class="eyebrow">● EN VIVO</span><h2>PARTIDO <em>EN JUEGO</em></h2><p>Marcador actualizado en tiempo real.</p></div><div class="public-live__score"><div><strong>${teamNameUpper()}</strong><b>${live.golesXolitas}</b></div><span>—</span><div><b>${live.golesRival}</b><strong>${esc((live.rival||'RIVAL').toUpperCase())}</strong></div></div><div class="public-live__meta"><span>${esc(live.lugar||'Cancha por definir')}</span><span>${esc(live.torneo||'Partido oficial')}</span></div>`;document.querySelector('#jornadas')?.before(section)}
 const modal = document.querySelector('.match-modal');
 document.querySelectorAll('[data-open-match]').forEach(b => b.addEventListener('click', () => modal.showModal()));
 document.querySelector('.match-close').addEventListener('click', () => modal.close());

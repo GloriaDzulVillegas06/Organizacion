@@ -106,7 +106,7 @@ function confirmReset() {
   document.querySelector('#confirm-copy').textContent = `Se eliminarán ${events.length} eventos, el marcador quedará 0 — 0 y el cronómetro volverá a 00:00.`;
   document.querySelector('#confirm-yes').onclick = async () => {
     const button = document.querySelector('#confirm-yes'); button.disabled = true; button.textContent = 'Reiniciando…'; clearInterval(timerId); ticking = false;
-    try { await eventsService.clearMatch(match.id); Object.assign(match,{golesXolitas:0,golesRival:0,elapsed:0,phase:'PRIMER TIEMPO',estado:'programado'}); await matchesService.save(match); matchesService.setActive(match); d.close(); render(); }
+    try { await eventsService.clearMatch(match.id); Object.assign(match,{golesXolitas:0,golesRival:0,elapsed:0,phase:'PRIMER TIEMPO',estado:'programado'}); matchesService.setActive(match); d.close(); render(); }
     catch(error) { document.querySelector('#confirm-copy').textContent = `No se pudo reiniciar: ${error.message}`; button.disabled = false; button.textContent = 'Reintentar'; }
   };
   d.showModal();
