@@ -61,23 +61,23 @@ function chooseEventType(type) {
   document.querySelector('#event-player-title').textContent = labels[type];
   document.querySelector('#event-player-sheet').showModal();
 }
-function chooseOwnGoal(direction) {
+async function chooseOwnGoal(direction) {
   document.querySelector('#own-goal-sheet').close();
-  if (direction === 'favor') { eventsService.add({ matchId:match.id, tipo:'autogol_favor', ...currentEventTime() }); match.golesXolitas++; saveRender(); return; }
+  if (direction === 'favor') { await addEvent({ matchId:match.id, tipo:'autogol_favor', ...currentEventTime() }); match.golesXolitas++; saveRender(); return; }
   pendingEventType = 'autogol_contra';
   document.querySelector('#event-player-title').textContent = '¿QUIÉN COMETIÓ EL AUTOGOL?';
   document.querySelector('#event-player-sheet').showModal();
 }
-function addDisciplinaryEvent(id) {
+async function addDisciplinaryEvent(id) {
   const p = playersService.all().find(x => x.id === id);
-  eventsService.add({ matchId: match.id, jugadoraId: p.id, jugadoraNombre: p.nombre, jugadoraNumero: p.numero, tipo: pendingEventType, ...currentEventTime() });
+  await addEvent({ matchId: match.id, jugadoraId: p.id, jugadoraNombre: p.nombre, jugadoraNumero: p.numero, tipo: pendingEventType, ...currentEventTime() });
   if (pendingEventType === 'autogol_contra') match.golesRival++;
   document.querySelector('#event-player-sheet').close();
   saveRender();
 }
-function addOurGoal(id) {
+async function addOurGoal(id) {
   const p = playersService.all().find(x => x.id === id);
-  eventsService.add({ matchId: match.id, jugadoraId: p.id, jugadoraNombre: p.nombre, tipo: 'gol_xolitas', ...currentEventTime() });
+  await addEvent({ matchId: match.id, jugadoraId: p.id, jugadoraNombre: p.nombre, tipo: 'gol_xolitas', ...currentEventTime() });
   match.golesXolitas++;
   matchesService.setActive(match);
   document.querySelector('#scorer-sheet').close();
@@ -87,13 +87,17 @@ function addOurGoal(id) {
   const flash = document.querySelector('#goal-flash'); flash.classList.remove('show-goal'); void flash.offsetWidth; flash.classList.add('show-goal');
   setTimeout(render, 2050);
 }
-function addRivalGoal() { eventsService.add({ matchId: match.id, tipo: 'gol_rival', ...currentEventTime() }); match.golesRival++; saveRender(); }
+async function addRivalGoal() { await addEvent({ matchId: match.id, tipo: 'gol_rival', ...currentEventTime() }); match.golesRival++; saveRender(); }
+async function addEvent(event) {
+  try { await eventsService.add(event); }
+  catch(error) { alert(`No se pudo guardar el evento: ${error.message}`); throw error; }
+}
 function confirmUndo() {
   const events = eventsService.forMatch(match.id); if (!events.length) return;
   const last = events.at(-1), d = document.querySelector('#confirm');
   document.querySelector('#confirm-title').textContent = '¿DESHACER EVENTO?';
   document.querySelector('#confirm-copy').textContent = `Se eliminará: ${eventLabel(last)}.`;
-  document.querySelector('#confirm-yes').onclick = () => { eventsService.undo(match.id); if (['gol_xolitas','autogol_favor'].includes(last.tipo)) match.golesXolitas = Math.max(0, match.golesXolitas - 1); if (['gol_rival','autogol_contra'].includes(last.tipo)) match.golesRival = Math.max(0, match.golesRival - 1); d.close(); saveRender(); };
+  document.querySelector('#confirm-yes').onclick = async () => { const button=document.querySelector('#confirm-yes');button.disabled=true;try{await eventsService.undo(match.id);if (['gol_xolitas','autogol_favor'].includes(last.tipo)) match.golesXolitas = Math.max(0, match.golesXolitas - 1);if (['gol_rival','autogol_contra'].includes(last.tipo)) match.golesRival = Math.max(0, match.golesRival - 1);d.close();saveRender()}catch(error){document.querySelector('#confirm-copy').textContent=`No se pudo deshacer: ${error.message}`}finally{button.disabled=false} };
   d.showModal();
 }
 function confirmReset() {

@@ -24,7 +24,8 @@
 .panel-logout{min-height:42px;letter-spacing:0}
 body[data-page="attendance"] .topbar,body[data-page="player-panel"] .topbar{flex-wrap:wrap;gap:12px}
 body[data-page="attendance"] .admin-main,body[data-page="player-panel"] .admin-main{min-width:0}
-body[data-page="attendance"] .sidebar,body[data-page="player-panel"] .sidebar{overflow-y:auto}
+body[data-page="attendance"] .sidebar,body[data-page="player-panel"] .sidebar{overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+body[data-page="attendance"] .sidebar::-webkit-scrollbar,body[data-page="player-panel"] .sidebar::-webkit-scrollbar{width:0;height:0}
 body[data-page="attendance"] .sidebar nav,body[data-page="player-panel"] .sidebar nav{margin-top:24px}
 body[data-page="attendance"] .sidebar footer,body[data-page="player-panel"] .sidebar footer{position:static;margin-top:24px}
 @media(max-width:900px){body[data-page="attendance"] .sidebar,body[data-page="player-panel"] .sidebar{overflow:visible}}

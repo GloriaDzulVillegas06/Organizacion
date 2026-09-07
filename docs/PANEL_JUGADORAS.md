@@ -9,6 +9,8 @@
 5. En Convocatorias y asistencia > Cuentas de jugadoras, localizar la ficha, escribir ese mismo correo y pulsar Vincular. El backend exige cuenta confirmada y membresia activa de la misma organizacion. El entrenador no puede vincular cuentas.
 6. La jugadora entra por el login del equipo. Una cuenta `viewer` vinculada se redirige desde el dashboard a Mi temporada. Quien tenga otro rol puede abrir Mi temporada desde el menu sin perder sus accesos existentes.
 
+Para el marcador publico en tiempo real, ejecutar tambien `supabase/06_REALTIME_PARTIDOS.sql`. No se crea un canal manual en el Dashboard: el frontend crea el canal `team-{team_id}` y escucha cambios de `matches` y `match_events`. Como alternativa, en Supabase > Database > Publications > `supabase_realtime`, activar las tablas `matches` y `match_events`.
+
 URLs de Xolitas:
 
 - `https://gloriadzulvillegas06.github.io/Organizacion/admin/mi-temporada.html?team=xolitas`

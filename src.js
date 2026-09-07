@@ -37,7 +37,7 @@ document.querySelector('#app').className='';document.querySelector('#app').inner
     </section>
 
     <section class="rounds section" id="jornadas"><header class="rounds__head"><div><span class="eyebrow dark">${esc(COPY.calendarEyebrow||'Calendario oficial')}</span><h2>${esc(COPY.calendarTitle1||'HUELLAS EN')} <em>${esc(COPY.calendarTitle2||'LA CANCHA')}</em></h2></div><p>${COPY.calendarDesc||'Próximo desafío y resultado más reciente<br>sin perder de vista la temporada.'}</p></header><div class="rounds__grid">
-      <article class="round-card round-card--next"><div class="round-card__top"><span>${nextEntry?.estado==='jugando'?'En vivo':'Próxima jornada'}</span><b>J${nextEntry?.jornada||'—'}</b></div>${nextEntry?.estado==='descanso'?`<div class="round-card__rest"><strong>DESCANSO</strong><p>${dateText(nextEntry)}</p></div>`:nextEntry?`<div class="round-card__teams"><strong>${teamNameUpper()}</strong><em>VS</em><strong>${(nextEntry.rival||'RIVAL').toUpperCase()}</strong></div><div class="round-card__details"><span>${dateText(nextEntry)}</span><span>${nextEntry.lugar||'Lugar por definir'}</span></div>`:'<div class="round-card__empty">Sin jornadas programadas</div>'}</article>
+      <article class="round-card round-card--next"><div class="round-card__top"><span>${nextEntry?.estado==='jugando'?'● En vivo':'Próxima jornada'}</span><b>J${nextEntry?.jornada||'—'}</b></div>${nextEntry?.estado==='descanso'?`<div class="round-card__rest"><strong>DESCANSO</strong><p>${dateText(nextEntry)}</p></div>`:nextEntry?`<div class="round-card__teams"><strong>${teamNameUpper()}</strong><em class="${nextEntry.estado==='jugando'?'round-score':''}">${nextEntry.estado==='jugando'?`${nextEntry.golesXolitas} — ${nextEntry.golesRival}`:'VS'}</em><strong>${(nextEntry.rival||'RIVAL').toUpperCase()}</strong></div><div class="round-card__details"><span>${nextEntry.estado==='jugando'?'Marcador en tiempo real':dateText(nextEntry)}</span><span>${nextEntry.lugar||'Lugar por definir'}</span></div>`:'<div class="round-card__empty">Sin jornadas programadas</div>'}</article>
       <article class="round-card round-card--result"><div class="round-card__top"><span>Último resultado</span><b>J${last?.jornada||'—'}</b></div>${last?`<div class="round-card__teams"><strong>${teamNameUpper()}</strong><em class="round-score">${last.golesXolitas} — ${last.golesRival}</em><strong>${(last.rival||'RIVAL').toUpperCase()}</strong></div><div class="round-card__details"><span>${last.torneo||'Liga'}</span><span>${dateText(last)}</span></div>`:'<div class="round-card__empty">Aún sin resultados</div>'}</article>
     </div><button type="button" class="rounds__all" id="open-rounds">Ver todas las jornadas <span>→</span></button></section>
     <dialog class="journeys-modal" id="journeys-modal"><header><div><span class="eyebrow">${esc(TEAM.season||'Temporada 2026')}</span><h2>JORNADAS Y RESULTADOS</h2></div><button type="button" data-rounds-close aria-label="Cerrar">×</button></header><div class="journeys-modal__list">${[...matches].sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(journeyRow).join('')}</div></dialog>
@@ -70,21 +70,15 @@ document.querySelector('#app').className='';document.querySelector('#app').inner
   <footer><div class="brand">${Crest({small:true})}<span>${teamDisplay()}</span></div><p>${COPY.footer||'Hechas de historia.<br>Jugamos el presente.'}</p><div><a href="#">Instagram</a><a href="#">Facebook</a><a href="#">Contacto</a></div><small>© ${new Date().getFullYear()} ${esc(TEAM.name)}</small></footer>
 
   <dialog class="match-modal">
-    <button class="match-close" aria-label="Cerrar">×</button><div class="live"><i></i> EN VIVO</div>
-    <div class="score-teams"><div>${Crest({small:true})}<strong>${teamNameUpper()}</strong></div><span class="score"><b id="home-score">2</b><em>—</em><b>1</b></span><div class="rival-badge">P</div><strong>PANTERAS</strong></div>
-    <div class="clock">38:24</div><button class="goal-button">⚽ &nbsp; GOL ${teamNameUpper()}</button><p class="match-hint">Toca para registrar un gol</p>
-    <div class="goal-flash"><span>✦</span><small>¡GOOOOOOL!</small><h2>JESSICA</h2><b>#10</b></div>
+    <button class="match-close" aria-label="Cerrar">×</button><div class="live"><i></i> ${live?'EN VIVO':'SIN PARTIDO EN VIVO'}</div>
+    <div class="score-teams"><div>${Crest({small:true})}<strong>${teamNameUpper()}</strong></div><span class="score"><b id="home-score">${live?.golesXolitas??0}</b><em>—</em><b id="away-score">${live?.golesRival??0}</b></span><div class="rival-badge">${esc((live?.rival||'R').slice(0,1).toUpperCase())}</div><strong>${(live?.rival||'SIN RIVAL').toUpperCase()}</strong></div>
+    <div class="clock">${live?dateText(live):'El marcador aparecerá aquí cuando inicie el partido.'}</div><p class="match-hint">Este marcador se actualiza automáticamente durante el partido.</p>
   </dialog>
 `;
 
 const modal = document.querySelector('.match-modal');
 document.querySelectorAll('[data-open-match]').forEach(b => b.addEventListener('click', () => modal.showModal()));
 document.querySelector('.match-close').addEventListener('click', () => modal.close());
-document.querySelector('.goal-button').addEventListener('click', () => {
-  const score = document.querySelector('#home-score'); score.textContent = Number(score.textContent) + 1;
-  modal.classList.remove('is-goal'); void modal.offsetWidth; modal.classList.add('is-goal');
-  setTimeout(() => modal.classList.remove('is-goal'), 2100);
-});
 const toggle = document.querySelector('.nav__toggle');
 toggle.addEventListener('click', () => { const open = document.body.classList.toggle('menu-open'); toggle.setAttribute('aria-expanded', open); });
 document.querySelectorAll('.nav__links a').forEach(a => a.addEventListener('click', () => document.body.classList.remove('menu-open')));
