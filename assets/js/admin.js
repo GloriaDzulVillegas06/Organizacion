@@ -44,6 +44,8 @@ async function initAdmin(){
   if(page==='members') await renderMembers(app,session);
   if(page==='subscription') await renderSubscription(app,session);
   if(page==='player-panel'||page==='attendance') await window.PlayerPanel.init(app,session,page==='attendance',shell);
+  const brandLogo=document.querySelector('.admin-brand img');
+  if(brandLogo){brandLogo.style.cssText='display:block;width:52px;height:54px;max-width:52px;object-fit:contain';}
   document.querySelector('.logout').onclick=async()=>{await authService.logout();location.href=qTeam('./login.html')};
   document.querySelector('.mobile-menu').onclick=()=>document.body.classList.toggle('menu-open');
   consumeFlash();
